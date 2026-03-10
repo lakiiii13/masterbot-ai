@@ -1,0 +1,19 @@
+# Dependencies & build
+node_modules
+dist
+build
+
+# Env (nikad ne pushuj API ključeve)
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+*.swp
+.cursor
