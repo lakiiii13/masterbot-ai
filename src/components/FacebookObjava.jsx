@@ -1,16 +1,11 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import masterbotLogo from "../assets/images/logo.png";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const OPENAI_MODEL_IDS = ["gpt-4o", "gpt-4-turbo"];
 const MODELS = [
-  { id: "gpt-4o", label: "GPT-4o", tag: "OpenAI", dot: "#10a37f", desc: "Najbrži, odličan za kreativne tekstove", provider: "openai" },
-  { id: "gpt-4-turbo", label: "GPT-4 Turbo", tag: "OpenAI", dot: "#10a37f", desc: "Detaljniji i precizniji rezultati", provider: "openai" },
-  { id: "gemini-1.5-pro", label: "Gemini 1.5 Pro", tag: "Google", dot: "#4285f4", desc: "Odličan za duže sadržaje", provider: "google" },
-  { id: "gemini-flash", label: "Gemini Flash", tag: "Google", dot: "#4285f4", desc: "Brz i efikasan", provider: "google" },
-  { id: "claude-sonnet", label: "Claude Sonnet", tag: "Anthropic", dot: "#e2692a", desc: "Prirodan, human ton pisanja", provider: "anthropic" },
-  { id: "claude-opus", label: "Claude Opus", tag: "Anthropic", dot: "#e2692a", desc: "Najprecizniji i najdetaljniji", provider: "anthropic" },
+  { id: "gpt-5.2", label: "ChatGPT 5.2", tag: "OpenAI", dot: "#10a37f", desc: "Flagship model za kompleksno pisanje", provider: "openai" },
+  { id: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro", tag: "Google", dot: "#4285f4", desc: "Najnoviji, odličan za pisanje, bez retirement u junu", provider: "google" },
+  { id: "claude-sonnet-4-5", label: "Claude Sonnet 4.5", tag: "Anthropic", dot: "#e2692a", desc: "Odličan za reasoning i pisanje", provider: "anthropic" },
+  { id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6", tag: "Anthropic", dot: "#e2692a", desc: "Najnoviji, brz i inteligentan", provider: "anthropic" },
 ];
 
 const TONES = [
@@ -27,55 +22,31 @@ const LANGUAGES = ["Srpski jezik", "Hrvatski jezik", "Bosanski jezik", "Engleski
 
 const TOTAL_STEPS = 4;
 
-// ─── API (OpenAI) ─────────────────────────────────────────────────────────────
+// ─── API (backend) ────────────────────────────────────────────────────────────
 function useCallAI() {
-  const openaiKey = import.meta.env.VITE_OPENAI_API_KEY?.trim?.() || "";
+  const apiUrl = import.meta.env.VITE_API_URL?.trim?.() || "";
+  const apiKey = import.meta.env.VITE_API_KEY?.trim?.() || "";
   return useCallback(async (systemMsg, userContent, selectedModel) => {
-    if (selectedModel?.provider !== "openai" || !openaiKey) {
-      if (selectedModel?.provider === "anthropic" || selectedModel?.provider === "google")
-        throw new Error("Za ovaj model postavite API preko backend-a. Koristite GPT-4o ili GPT-4 Turbo.");
-      throw new Error("Postavite VITE_OPENAI_API_KEY u .env");
-    }
-    const modelId = OPENAI_MODEL_IDS.includes(selectedModel.id) ? selectedModel.id : "gpt-4o";
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    if (!apiUrl) throw new Error("Postavite VITE_API_URL u .env (URL backend-a). Vidi .env.example.");
+    if (!apiKey) throw new Error("Postavite VITE_API_KEY u .env (isti kao API_SECRET na backend-u).");
+    const res = await fetch(`${apiUrl.replace(/\/$/, "")}/api/chat`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${openaiKey}` },
+      headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
       body: JSON.stringify({
-        model: modelId,
-        max_tokens: 1000,
-        messages: [
-          { role: "system", content: systemMsg },
-          { role: "user", content: userContent },
-        ],
+        systemMsg,
+        userContent,
+        modelId: selectedModel?.id || "gpt-5.2",
       }),
     });
     const data = await res.json();
-    if (data.error) throw new Error(data.error.message || "OpenAI greška");
-    return data.choices?.[0]?.message?.content?.trim?.() || "";
-  }, [openaiKey]);
+    if (!res.ok) throw new Error(data.error || data.message || "Greška na serveru");
+    return data.text?.trim?.() || "";
+  }, [apiUrl, apiKey]);
 }
 
 // ─── Shared UI ────────────────────────────────────────────────────────────────
-const NavBar = ({ onBack }) => (
-  <nav style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 40px", borderBottom: "1px solid rgba(255,255,255,0.06)", position: "fixed", top: 0, left: 0, right: 0, zIndex: 300, backdropFilter: "blur(16px)", background: "rgba(9,11,17,0.85)" }}>
-    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <button onClick={onBack} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
-        <img src={masterbotLogo} alt="Masterbot" style={{ width: 32, height: 32, objectFit: "contain" }} />
-        <span style={{ fontSize: 15, fontWeight: 800, color: "white", letterSpacing: -0.3 }}>
-          masterbot <span style={{ background: "linear-gradient(90deg,#4f8ef7,#e2692a)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>AI</span>
-        </span>
-      </button>
-    </div>
-    <div style={{ display: "flex", gap: 2 }}>
-      {["▶ Tutorijali", "🎧 Podrška", "👤 Profil"].map(l => (
-        <button key={l} style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.45)", fontSize: 13, cursor: "pointer", padding: "7px 12px", borderRadius: 8, fontFamily: "inherit" }}>{l}</button>
-      ))}
-    </div>
-  </nav>
-);
-
 const ProgressBar = ({ step, total }) => (
-  <div style={{ position: "fixed", top: 61, left: 0, right: 0, zIndex: 299, height: 2, background: "rgba(255,255,255,0.06)" }}>
+  <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 299, height: 2, background: "rgba(255,255,255,0.06)" }}>
     <div style={{ height: "100%", background: "linear-gradient(90deg,#3b7ff5,#e2692a)", width: `${(step / total) * 100}%`, transition: "width 0.5s cubic-bezier(0.4,0,0.2,1)" }} />
   </div>
 );
@@ -301,14 +272,14 @@ const LoadingScreen = () => {
     return () => clearInterval(t);
   }, []);
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "calc(100vh - 63px)", gap: 32, paddingTop: 63 }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", gap: 32, paddingTop: 0 }}>
       <div style={{ position: "relative", width: 100, height: 100, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ position: "absolute", inset: -22, borderRadius: "50%", border: "2.5px solid transparent", borderTopColor: "#3b7ff5", borderRightColor: "rgba(59,127,245,0.2)", animation: "spinRing 1s linear infinite" }} />
         <div style={{ position: "absolute", inset: -36, borderRadius: "50%", border: "2px solid transparent", borderBottomColor: "#e2692a", borderLeftColor: "rgba(226,105,42,0.2)", animation: "spinRing 1.6s linear infinite reverse" }} />
-        <img src={masterbotLogo} alt="Masterbot" style={{ width: 80, height: 80, objectFit: "contain", animation: "botGlow 1.5s ease-in-out infinite" }} />
+        <div style={{ width: 80, height: 80, borderRadius: "50%", background: "linear-gradient(135deg,#3b7ff5,#e2692a)", animation: "botGlow 1.5s ease-in-out infinite" }} />
       </div>
       <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: 20, fontWeight: 800, color: "white", marginBottom: 10, letterSpacing: -0.3 }}>Masterbot piše za tebe...</div>
+        <div style={{ fontSize: 20, fontWeight: 800, color: "white", marginBottom: 10, letterSpacing: -0.3 }}>Pišem objavu...</div>
         <div key={msgIdx} style={{ fontSize: 14, color: "rgba(255,255,255,0.4)", animation: "fadeUp 0.4s ease" }}>{msgs[msgIdx]}</div>
       </div>
       <div style={{ display: "flex", gap: 8 }}>
@@ -380,7 +351,6 @@ const labelStyle = { display: "block", fontSize: 12, fontWeight: 700, color: "rg
 
 // ─── Main App ─────────────────────────────────────────────────────────────────
 export default function FacebookObjava() {
-  const navigate = useNavigate();
   const callAI = useCallAI();
   const [step, setStep] = useState(1);
   const [prompt, setPrompt] = useState("");
@@ -426,10 +396,9 @@ export default function FacebookObjava() {
   return (
     <div style={{ minHeight: "100vh", background: "#090b11", fontFamily: "'Plus Jakarta Sans',sans-serif", color: "white" }}>
       <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-      <NavBar onBack={() => navigate("/")} />
       <ProgressBar step={step === 6 ? TOTAL_STEPS : step - 1} total={TOTAL_STEPS} />
 
-      <div style={{ maxWidth: 580, margin: "0 auto", padding: "100px 24px 60px" }}>
+      <div style={{ maxWidth: 580, margin: "0 auto", padding: "48px 24px 60px" }}>
         {step === 1 && <Step1 value={prompt} onChange={setPrompt} onNext={() => setStep(2)} callAI={callAI} />}
         {step === 2 && <Step2 image={image} onImage={setImage} onClear={() => setImage(null)} onNext={() => setStep(3)} onBack={() => setStep(1)} />}
         {step === 3 && <Step3 tone={tone} onTone={setTone} language={language} onLanguage={setLanguage} onNext={() => setStep(4)} onBack={() => setStep(2)} />}

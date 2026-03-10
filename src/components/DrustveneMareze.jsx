@@ -58,14 +58,11 @@ const IconCopy = () => (
 );
 
 // ─── Models ───────────────────────────────────────────────────────────────────
-const OPENAI_MODEL_IDS = ["gpt-4o", "gpt-4-turbo"];
 const MODELS = [
-  { id: "gpt-4o", label: "GPT-4o", tag: "OpenAI", dot: "#10a37f", provider: "openai" },
-  { id: "gpt-4-turbo", label: "GPT-4 Turbo", tag: "OpenAI", dot: "#10a37f", provider: "openai" },
-  { id: "gemini-1.5-pro", label: "Gemini 1.5 Pro", tag: "Google", dot: "#4285f4", provider: "google" },
-  { id: "gemini-flash", label: "Gemini Flash", tag: "Google", dot: "#4285f4", provider: "google" },
-  { id: "claude-sonnet", label: "Claude Sonnet", tag: "Anthropic", dot: "#c2410c", provider: "anthropic" },
-  { id: "claude-opus", label: "Claude Opus", tag: "Anthropic", dot: "#c2410c", provider: "anthropic" },
+  { id: "gpt-5.2", label: "ChatGPT 5.2", tag: "OpenAI", dot: "#10a37f", provider: "openai" },
+  { id: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro", tag: "Google", dot: "#4285f4", provider: "google" },
+  { id: "claude-sonnet-4-5", label: "Claude Sonnet 4.5", tag: "Anthropic", dot: "#c2410c", provider: "anthropic" },
+  { id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6", tag: "Anthropic", dot: "#c2410c", provider: "anthropic" },
 ];
 
 // ─── Tool Configs ─────────────────────────────────────────────────────────────
@@ -140,36 +137,24 @@ function ToolPage({ tool, onBack }) {
   const [enhancing, setEnhancing] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const openaiKey = import.meta.env.VITE_OPENAI_API_KEY?.trim?.() || "";
+  const apiUrl = import.meta.env.VITE_API_URL?.trim?.() || "";
+  const apiKey = import.meta.env.VITE_API_KEY?.trim?.() || "";
 
   const callAI = async (systemMsg, userMsg, selectedModel) => {
-    if (selectedModel.provider === "openai" && openaiKey) {
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${openaiKey}`,
-        },
-        body: JSON.stringify({
-          model: OPENAI_MODEL_IDS.includes(selectedModel.id) ? selectedModel.id : "gpt-4o",
-          max_tokens: 1000,
-          messages: [
-            { role: "system", content: systemMsg },
-            { role: "user", content: userMsg },
-          ],
-        }),
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error.message || "OpenAI greška");
-      return data.choices?.[0]?.message?.content?.trim?.() || "";
-    }
-    if (selectedModel.provider === "anthropic" || selectedModel.provider === "google") {
-      return "Za ovaj model postavite API ključ preko backend-a (uskoro). Za sada koristite GPT-4o ili GPT-4 Turbo.";
-    }
-    if (!openaiKey) {
-      throw new Error("Postavite VITE_OPENAI_API_KEY u .env fajl.");
-    }
-    return "";
+    if (!apiUrl) throw new Error("Postavite VITE_API_URL u .env (URL backend-a). Vidi .env.example.");
+    if (!apiKey) throw new Error("Postavite VITE_API_KEY u .env (isti kao API_SECRET na backend-u).");
+    const res = await fetch(`${apiUrl.replace(/\/$/, "")}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
+      body: JSON.stringify({
+        systemMsg,
+        userContent: userMsg,
+        modelId: selectedModel?.id || "gpt-5.2",
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || data.message || "Greška na serveru");
+    return data.text?.trim?.() || "";
   };
 
   const enhancePrompt = async () => {
@@ -184,7 +169,7 @@ function ToolPage({ tool, onBack }) {
       if (improved) setPrompt(improved);
     } catch (e) {
       console.error(e);
-      if (e.message?.includes("VITE_OPENAI")) setOutput("Postavite OpenAI API ključ u .env (VITE_OPENAI_API_KEY).");
+      if (e.message?.includes("VITE_API_URL") || e.message?.includes("VITE_API_KEY")) setOutput("Postavite VITE_API_URL i VITE_API_KEY u .env. Vidi .env.example.");
     }
     setEnhancing(false);
   };

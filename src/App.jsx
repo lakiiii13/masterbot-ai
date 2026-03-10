@@ -7,7 +7,8 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<DrustveneMareze />} />
+        <Route path="/" element={<FacebookObjava />} />
+        <Route path="/alati" element={<DrustveneMareze />} />
         <Route path="/alati/facebook-objava" element={<FacebookObjava />} />
         <Route path="/alati/instagram-objava" element={<InstagramObjava />} />
       </Routes>

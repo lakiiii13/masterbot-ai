@@ -3,14 +3,11 @@ import { useNavigate } from "react-router-dom";
 import masterbotLogo from "../assets/images/logo.png";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const OPENAI_MODEL_IDS = ["gpt-4o", "gpt-4-turbo"];
 const MODELS = [
-  { id: "gpt-4o", label: "GPT-4o", tag: "OpenAI", dot: "#10a37f", desc: "Najbrži, odličan za kreativne caption-e", provider: "openai" },
-  { id: "gpt-4-turbo", label: "GPT-4 Turbo", tag: "OpenAI", dot: "#10a37f", desc: "Detaljniji i precizniji rezultati", provider: "openai" },
-  { id: "gemini-1.5-pro", label: "Gemini 1.5 Pro", tag: "Google", dot: "#4285f4", desc: "Odličan za duže sadržaje", provider: "google" },
-  { id: "gemini-flash", label: "Gemini Flash", tag: "Google", dot: "#4285f4", desc: "Brz i efikasan", provider: "google" },
-  { id: "claude-sonnet", label: "Claude Sonnet", tag: "Anthropic", dot: "#e2692a", desc: "Prirodan, human ton pisanja", provider: "anthropic" },
-  { id: "claude-opus", label: "Claude Opus", tag: "Anthropic", dot: "#e2692a", desc: "Najprecizniji i najdetaljniji", provider: "anthropic" },
+  { id: "gpt-5.2", label: "ChatGPT 5.2", tag: "OpenAI", dot: "#10a37f", desc: "Flagship model za kompleksno pisanje", provider: "openai" },
+  { id: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro", tag: "Google", dot: "#4285f4", desc: "Najnoviji, odličan za pisanje, bez retirement u junu", provider: "google" },
+  { id: "claude-sonnet-4-5", label: "Claude Sonnet 4.5", tag: "Anthropic", dot: "#e2692a", desc: "Odličan za reasoning i pisanje", provider: "anthropic" },
+  { id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6", tag: "Anthropic", dot: "#e2692a", desc: "Najnoviji, brz i inteligentan", provider: "anthropic" },
 ];
 
 const TONES = [
@@ -27,32 +24,26 @@ const LANGUAGES = ["Srpski jezik", "Hrvatski jezik", "Bosanski jezik", "Engleski
 
 const TOTAL_STEPS = 4;
 
-// ─── API (OpenAI) ─────────────────────────────────────────────────────────────
+// ─── API (backend) ────────────────────────────────────────────────────────────
 function useCallAI() {
-  const openaiKey = import.meta.env.VITE_OPENAI_API_KEY?.trim?.() || "";
+  const apiUrl = import.meta.env.VITE_API_URL?.trim?.() || "";
+  const apiKey = import.meta.env.VITE_API_KEY?.trim?.() || "";
   return useCallback(async (systemMsg, userContent, selectedModel) => {
-    if (selectedModel?.provider !== "openai" || !openaiKey) {
-      if (selectedModel?.provider === "anthropic" || selectedModel?.provider === "google")
-        throw new Error("Za ovaj model postavite API preko backend-a. Koristite GPT-4o ili GPT-4 Turbo.");
-      throw new Error("Postavite VITE_OPENAI_API_KEY u .env");
-    }
-    const modelId = OPENAI_MODEL_IDS.includes(selectedModel.id) ? selectedModel.id : "gpt-4o";
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    if (!apiUrl) throw new Error("Postavite VITE_API_URL u .env (URL backend-a). Vidi .env.example.");
+    if (!apiKey) throw new Error("Postavite VITE_API_KEY u .env (isti kao API_SECRET na backend-u).");
+    const res = await fetch(`${apiUrl.replace(/\/$/, "")}/api/chat`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${openaiKey}` },
+      headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
       body: JSON.stringify({
-        model: modelId,
-        max_tokens: 1000,
-        messages: [
-          { role: "system", content: systemMsg },
-          { role: "user", content: userContent },
-        ],
+        systemMsg,
+        userContent,
+        modelId: selectedModel?.id || "gpt-5.2",
       }),
     });
     const data = await res.json();
-    if (data.error) throw new Error(data.error.message || "OpenAI greška");
-    return data.choices?.[0]?.message?.content?.trim?.() || "";
-  }, [openaiKey]);
+    if (!res.ok) throw new Error(data.error || data.message || "Greška na serveru");
+    return data.text?.trim?.() || "";
+  }, [apiUrl, apiKey]);
 }
 
 // ─── Shared UI ────────────────────────────────────────────────────────────────
