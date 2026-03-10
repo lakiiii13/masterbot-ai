@@ -48,9 +48,11 @@ app.post("/api/chat", async (req, res) => {
       const key = process.env.OPENAI_API_KEY;
       if (!key) return res.status(500).json({ error: "OPENAI_API_KEY nije postavljen u .env" });
       const openai = new OpenAI({ apiKey: key });
+      // GPT-5.x koristi max_completion_tokens; stariji modeli max_tokens (OpenAI API docs)
+      const tokenParam = modelId.startsWith("gpt-5") ? { max_completion_tokens: 1000 } : { max_tokens: 1000 };
       const completion = await openai.chat.completions.create({
         model: modelId,
-        max_tokens: 1000,
+        ...tokenParam,
         messages: [
           { role: "system", content: systemMsg },
           { role: "user", content: userContent },
