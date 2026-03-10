@@ -87,7 +87,17 @@ const Step1 = ({ value, onChange, onNext, callAI }) => {
     setEnhancing(true);
     try {
       const improved = await callAI(
-        "Poboljšaj prompt da AI bolje razume kontekst i napiše kvalitetniji Facebook post. Dodaj detalje o ciljanoj publici i željenom efektu. Vrati SAMO poboljšani prompt.",
+        `Ti si ekspert za poboljšavanje prompta za AI generisanje Facebook objava. Korisnik je uneo kratak opis. Tvoj zadatak je da ga proširiš u detaljan, konkretan prompt koji će AI-u dati sve potrebne informacije za pisanje odlične objave.
+
+Proširi prompt tako da uključi:
+- Vrstu biznisa/lokaciju (npr. poslastičarnica u Beogradu)
+- Proizvode ili usluge (npr. sladoled od vanile, specijaliteti)
+- Ciljnu publiku (kome se obraća)
+- Željeni ton (opušten, profesionalan, duhovit...)
+- Ključne poruke ili pozive na akciju (poseti, probaj, naruči...)
+- Jedinstvene prednosti ako postoje
+
+Piši na istom jeziku kao korisnikov unos. Vrati SAMO poboljšani prompt, bez uvoda ili objašnjenja. Maksimalno 1000 karaktera.`,
         value,
         defaultModel
       );
