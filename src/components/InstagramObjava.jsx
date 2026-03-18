@@ -38,7 +38,7 @@ const TOTAL_STEPS = 4;
 
 // ─── API (backend) ────────────────────────────────────────────────────────────
 function useCallAI() {
-  const apiUrl = import.meta.env.VITE_API_URL?.trim?.() || (import.meta.env.DEV ? "http://localhost:3000" : "");
+  const apiUrl = import.meta.env.VITE_API_URL?.trim?.() || (import.meta.env.DEV ? "http://localhost:3000" : (typeof window !== "undefined" ? window.location.origin : ""));
   const apiKey = import.meta.env.VITE_API_KEY?.trim?.() || "";
   return useCallback(async (systemMsg, userContent, selectedModel) => {
     if (!apiUrl) throw new Error("Postavite VITE_API_URL u .env (URL backend-a). Vidi .env.example.");

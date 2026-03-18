@@ -19,6 +19,9 @@ export default function FacebookLanding() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const userEmail = searchParams.get("email")?.trim() || null;
+  const bypass = searchParams.get("bypass")?.trim() || "";
+  const adminBypass = import.meta.env.VITE_ADMIN_BYPASS?.trim() || "";
+  const hasAccess = userEmail || import.meta.env.DEV || (adminBypass && bypass === adminBypass);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState(null);
@@ -81,56 +84,60 @@ export default function FacebookLanding() {
       <style>{`
         body { margin: 0; padding: 0; background: #0f1419; }
         * { box-sizing: border-box; }
+        .post-item:hover .arrow { transform: translateX(4px); color: rgba(255,255,255,0.7) !important; }
       `}</style>
       {/* Ambient glow - jači za svetliji osećaj */}
       <div style={{ position: "absolute", top: -80, left: "50%", transform: "translateX(-50%)", width: 700, height: 450, background: "radial-gradient(ellipse, rgba(59,127,245,0.18) 0%, rgba(226,105,42,0.08) 35%, transparent 65%)", pointerEvents: "none" }} />
       <div style={{ position: "absolute", bottom: -50, right: -80, width: 500, height: 350, background: "radial-gradient(ellipse, rgba(226,105,42,0.12) 0%, transparent 55%)", pointerEvents: "none" }} />
       <div style={{ position: "absolute", top: "40%", left: -150, width: 350, height: 350, background: "radial-gradient(circle, rgba(59,127,245,0.06) 0%, transparent 70%)", pointerEvents: "none" }} />
 
-      <div style={{ maxWidth: 680, margin: "0 auto", position: "relative", display: "flex", flexDirection: "column", minHeight: "calc(100vh - 120px)" }}>
-        {/* Hero CTA - glavni fokus, centriran */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "40px 24px 48px" }}>
-          <div style={{ background: "linear-gradient(145deg, rgba(59,127,245,0.14) 0%, rgba(226,105,42,0.06) 50%, rgba(255,255,255,0.02) 100%)", padding: "clamp(32px, 8vw, 64px) clamp(24px, 5vw, 48px)", borderRadius: 28, border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 8px 48px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.08)" }}>
-            <img src={logo} alt="Logo" style={{ width: "clamp(120px, 25vw, 160px)", height: "clamp(120px, 25vw, 160px)", objectFit: "contain", marginBottom: "clamp(24px, 4vw, 40px)", display: "block", marginLeft: "auto", marginRight: "auto", filter: "drop-shadow(0 12px 32px rgba(0,0,0,0.4))" }} />
-            <button
-              onClick={() => navigate(userEmail ? `/facebook-objava?email=${encodeURIComponent(userEmail)}` : "/facebook-objava")}
-              style={{
-                padding: "clamp(16px, 3vw, 22px) clamp(28px, 5vw, 48px)",
-                background: "linear-gradient(135deg, #fff 0%, #f0f4ff 100%)",
-                border: "none",
-                borderRadius: 100,
-                color: "#090b11",
-                fontSize: 18,
-                fontWeight: 700,
-                cursor: "pointer",
-                fontFamily: "inherit",
-                boxShadow: "0 6px 32px rgba(59,127,245,0.3), 0 4px 16px rgba(0,0,0,0.2)",
-                transition: "all 0.25s ease",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 12
-              }}
-              onMouseEnter={(e) => {
+      <div className="fb-landing-grid" style={{ maxWidth: 960, margin: "0 auto", position: "relative", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, alignItems: "stretch", minHeight: "calc(100vh - 140px)", justifyContent: "center", alignContent: "center" }}>
+        {/* Levo: Kreiraj objavu */}
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <div style={{ background: "linear-gradient(145deg, rgba(59,127,245,0.14) 0%, rgba(226,105,42,0.06) 50%, rgba(255,255,255,0.02) 100%)", padding: "40px", borderRadius: 28, border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 8px 48px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.08)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", width: "100%", height: 400 }}>
+            <img src={logo} alt="Logo" style={{ width: 140, height: 140, objectFit: "contain", marginBottom: 32, filter: "drop-shadow(0 12px 32px rgba(0,0,0,0.4))" }} />
+          <button
+            onClick={() => hasAccess && navigate(userEmail ? `/facebook-objava?email=${encodeURIComponent(userEmail)}` : bypass ? `/facebook-objava?bypass=${encodeURIComponent(bypass)}` : "/facebook-objava")}
+            disabled={!hasAccess}
+            style={{
+              padding: "18px 40px",
+              background: "linear-gradient(135deg, #fff 0%, #f0f4ff 100%)",
+              border: "none",
+              borderRadius: 100,
+              color: "#090b11",
+              fontSize: 18,
+              fontWeight: 700,
+              cursor: "pointer",
+              fontFamily: "inherit",
+              boxShadow: "0 6px 32px rgba(59,127,245,0.3), 0 4px 16px rgba(0,0,0,0.2)",
+              transition: "all 0.25s ease",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 12
+            }}
+            onMouseEnter={(e) => {
+              if (hasAccess) {
                 e.target.style.transform = "translateY(-4px) scale(1.03)";
                 e.target.style.boxShadow = "0 16px 48px rgba(226,105,42,0.35), 0 8px 24px rgba(0,0,0,0.25)";
                 e.target.style.background = "linear-gradient(135deg, #fff 0%, #ffe8dc 100%)";
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.transform = "none";
-                e.target.style.boxShadow = "0 6px 32px rgba(59,127,245,0.3), 0 4px 16px rgba(0,0,0,0.2)";
-                e.target.style.background = "linear-gradient(135deg, #fff 0%, #f0f4ff 100%)";
-              }}
-            >
-              <span style={{ fontSize: 22 }}>✨</span> Kreiraj novu objavu
-            </button>
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = "none";
+              e.target.style.boxShadow = "0 6px 32px rgba(59,127,245,0.3), 0 4px 16px rgba(0,0,0,0.2)";
+              e.target.style.background = "linear-gradient(135deg, #fff 0%, #f0f4ff 100%)";
+            }}
+          >
+            <span style={{ fontSize: 20 }}>✨</span> Započni novu objavu
+          </button>
           </div>
         </div>
 
-        {/* Prethodne objave - sekundarna sekcija ispod */}
-        <div style={{ flexShrink: 0, paddingTop: 24, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, paddingBottom: 12 }}>
-            <h2 style={{ fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.55)", letterSpacing: 0.2 }}>
-              Tvoje prethodne objave
+        {/* Desno: Istorija */}
+        <div style={{ background: "linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 28, padding: 32, display: "flex", flexDirection: "column", height: 400, boxShadow: "0 24px 80px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05)" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, paddingBottom: 12, flexShrink: 0 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: "rgba(255,255,255,0.7)", letterSpacing: 0.2 }}>
+              Istorija
             </h2>
             <span style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", fontWeight: 500 }}>
               {posts.length} sačuvano
@@ -138,28 +145,29 @@ export default function FacebookLanding() {
           </div>
 
           {loading ? (
-            <div style={{ textAlign: "center", padding: 40, color: "rgba(255,255,255,0.4)" }}>
+            <div style={{ textAlign: "center", padding: 32, color: "rgba(255,255,255,0.4)" }}>
               <div style={{ width: 24, height: 24, border: "2px solid rgba(59,127,245,0.2)", borderTopColor: "#3b7ff5", borderRadius: "50%", animation: "spin 1s linear infinite", margin: "0 auto 12px" }} />
-              <span style={{ fontSize: 13 }}>Učitavam istoriju...</span>
+              <span style={{ fontSize: 14 }}>Učitavam istoriju...</span>
             </div>
           ) : posts.length === 0 ? (
-            <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 14, padding: "16px 0" }}>
+            <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 14, padding: "24px 0" }}>
               Nemate prethodno kreiranih objava
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: 220, overflowY: "auto" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, flex: 1, overflowY: "auto", paddingRight: 4 }}>
               {posts.map((p) => {
                 const raw = p.content.replace(/\s+/g, " ").trim();
                 const preview = raw.length > PREVIEW_LEN ? raw.slice(0, PREVIEW_LEN) + "…" : raw;
                 return (
                   <div
                     key={p.id}
+                    className="post-item"
                     onClick={() => setModalPost(p)}
                     style={{
-                      background: "rgba(255,255,255,0.03)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                      borderRadius: 12,
-                      padding: "12px 16px",
+                      background: "rgba(255,255,255,0.04)",
+                      border: "1px solid rgba(255,255,255,0.06)",
+                      borderRadius: 16,
+                      padding: "16px",
                       transition: "all 0.2s ease",
                       cursor: "pointer",
                       display: "flex",
@@ -309,6 +317,9 @@ export default function FacebookLanding() {
       </div>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
+        @media (max-width: 768px) {
+          .fb-landing-grid { grid-template-columns: 1fr !important; }
+        }
       `}</style>
     </div>
   );

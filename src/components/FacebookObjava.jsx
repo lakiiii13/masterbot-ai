@@ -40,7 +40,7 @@ const TOTAL_STEPS = 4;
 
 // ─── API (backend) ────────────────────────────────────────────────────────────
 function useCallAI() {
-  const apiUrl = import.meta.env.VITE_API_URL?.trim?.() || (import.meta.env.DEV ? "http://localhost:3000" : "");
+  const apiUrl = import.meta.env.VITE_API_URL?.trim?.() || (import.meta.env.DEV ? "http://localhost:3000" : (typeof window !== "undefined" ? window.location.origin : ""));
   const apiKey = import.meta.env.VITE_API_KEY?.trim?.() || "";
   return useCallback(async (systemMsg, userContent, selectedModel) => {
     if (!apiUrl) throw new Error("Postavite VITE_API_URL u .env (URL backend-a). Vidi .env.example.");
@@ -626,7 +626,19 @@ export default function FacebookObjava() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const userEmail = searchParams.get("email")?.trim() || null;
+  const bypass = searchParams.get("bypass")?.trim() || "";
+  const adminBypass = import.meta.env.VITE_ADMIN_BYPASS?.trim() || "";
+  const hasAccess = userEmail || import.meta.env.DEV || (adminBypass && bypass === adminBypass);
   const callAI = useCallAI();
+
+  if (!hasAccess) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#090b11", fontFamily: "'Plus Jakarta Sans',sans-serif", color: "white", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, textAlign: "center" }}>
+        <p style={{ fontSize: 16, color: "rgba(255,255,255,0.7)", marginBottom: 20 }}>Pristup putem linka sa email parametrom (iz Bubble aplikacije).</p>
+        <button onClick={() => navigate("/")} style={{ padding: "12px 24px", background: "rgba(59,127,245,0.2)", border: "1px solid rgba(59,127,245,0.4)", borderRadius: 12, color: "#5b9aff", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>← Nazad</button>
+      </div>
+    );
+  }
   const [step, setStep] = useState(1);
   const [prompt, setPrompt] = useState("");
   const [image, setImage] = useState(null);
@@ -664,6 +676,15 @@ VAŽNO: Piši SAMO čist tekst za društvene mreže. NEMOJ koristiti Markdown il
         results.push(text || "");
       }
       setOutput(results);
+      // Bubble: ažuriraj potrošnju reči (poziva workflow iz .env)
+      if (userEmail) {
+        const url = import.meta.env.VITE_BUBBLE_UPDATE_WORDS_URL?.trim?.();
+        if (url) {
+          const sep = url.includes("?") ? "&" : "?";
+          const totalWords = results.reduce((sum, t) => sum + (t.match(/\S+/g) || []).length, 0);
+          fetch(`${url}${sep}user_email=${encodeURIComponent(userEmail)}&words=${totalWords}&_=${Date.now()}`, { method: "GET" }).catch(() => {});
+        }
+      }
     } catch (e) {
       setOutput([e.message || "Greška. Pokušaj ponovo."]);
     }

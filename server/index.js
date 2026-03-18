@@ -44,12 +44,13 @@ app.post("/api/chat", async (req, res) => {
 
     let text = "";
 
+    const MAX_TOKENS = 2048;
+
     if (OPENAI_MODELS.includes(modelId)) {
       const key = process.env.OPENAI_API_KEY;
       if (!key) return res.status(500).json({ error: "OPENAI_API_KEY nije postavljen u .env" });
       const openai = new OpenAI({ apiKey: key });
-      // GPT-5.x koristi max_completion_tokens; stariji modeli max_tokens (OpenAI API docs)
-      const tokenParam = modelId.startsWith("gpt-5") ? { max_completion_tokens: 1000 } : { max_tokens: 1000 };
+      const tokenParam = modelId.startsWith("gpt-5") ? { max_completion_tokens: MAX_TOKENS } : { max_tokens: MAX_TOKENS };
       const completion = await openai.chat.completions.create({
         model: modelId,
         ...tokenParam,
@@ -65,7 +66,7 @@ app.post("/api/chat", async (req, res) => {
       const anthropic = new Anthropic({ apiKey: key });
       const msg = await anthropic.messages.create({
         model: modelId,
-        max_tokens: 1000,
+        max_tokens: MAX_TOKENS,
         system: systemMsg,
         messages: [{ role: "user", content: userContent }],
       });
@@ -78,7 +79,7 @@ app.post("/api/chat", async (req, res) => {
       const resp = await ai.models.generateContent({
         model: modelId,
         contents: `${systemMsg}\n\nUser: ${userContent}`,
-        config: { maxOutputTokens: 1000 },
+        config: { maxOutputTokens: MAX_TOKENS },
       });
       text = resp.text?.trim?.() || "";
     } else {
